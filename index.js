@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import createDirectoryContents from './createDirectoryContents.js';
+
 const CURR_DIR = process.cwd();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -33,7 +34,22 @@ inquirer.prompt(QUESTIONS).then(answers => {
   const projectName = answers['project-name'];
   const templatePath = `${__dirname}/templates/${projectChoice}`;
 
-  fs.mkdirSync(`${CURR_DIR}/${projectName}`);
+  const projectPath = `${CURR_DIR}/${projectName}`;
 
-  createDirectoryContents(templatePath, projectName);
+  fs.mkdirSync(projectPath);
+
+  createDirectoryContents(templatePath, projectPath);
+
+  // Print instructions
+  console.log(`
+Project setup complete!
+
+To get started with your project, follow these steps:
+1. Change directory into your project folder:
+   cd ${projectName}
+2. Install dependencies:
+   npm install
+3. Start the development server:
+   npm run dev
+  `);
 });
