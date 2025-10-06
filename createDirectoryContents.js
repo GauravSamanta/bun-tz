@@ -1,25 +1,34 @@
 import * as fs from 'fs';
-const CURR_DIR = process.cwd();
+import path from 'path';
 
-const createDirectoryContents = (templatePath, newProjectPath) => {
+/**
+ * Recursively copy template files to new project path
+ * @param {string} templatePath - path to template folder
+ * @param {string} targetPath - path to new project folder
+ * @param {object} variables - key-value pairs for template replacements
+ */
+const createDirectoryContents = (templatePath, targetPath, variables = {}) => {
   const filesToCreate = fs.readdirSync(templatePath);
 
   filesToCreate.forEach(file => {
-    const origFilePath = `${templatePath}/${file}`;
-
-    // get stats about the current file
+    const origFilePath = path.join(templatePath, file);
     const stats = fs.statSync(origFilePath);
 
     if (stats.isFile()) {
-      const contents = fs.readFileSync(origFilePath, 'utf8');
+      let contents = fs.readFileSync(origFilePath, 'utf8');
 
-      const writePath = `${CURR_DIR}/${newProjectPath}/${file}`;
+      // Replace template variables like {{PROJECT_NAME}}
+      for (const [key, value] of Object.entries(variables)) {
+        const regex = new RegExp(`{{${key}}}`, 'g');
+        contents = contents.replace(regex, value);
+      }
+
+      const writePath = path.join(targetPath, file);
       fs.writeFileSync(writePath, contents, 'utf8');
     } else if (stats.isDirectory()) {
-      fs.mkdirSync(`${CURR_DIR}/${newProjectPath}/${file}`);
-
-      // recursive call
-      createDirectoryContents(`${templatePath}/${file}`, `${newProjectPath}/${file}`);
+      const dirPath = path.join(targetPath, file);
+      fs.mkdirSync(dirPath, { recursive: true });
+      createDirectoryContents(origFilePath, dirPath, variables);
     }
   });
 };

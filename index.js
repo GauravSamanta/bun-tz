@@ -2,29 +2,30 @@
 
 import inquirer from 'inquirer';
 import * as fs from 'fs';
-import { dirname } from 'path';
+import path from 'path';
 import { fileURLToPath } from 'url';
 import createDirectoryContents from './createDirectoryContents.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CURR_DIR = process.cwd();
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const CHOICES = fs.readdirSync(`${__dirname}/templates`);
+// List template folders
+const CHOICES = fs.readdirSync(path.join(__dirname, 'templates'));
 
 const QUESTIONS = [
   {
     name: 'project-choice',
     type: 'list',
-    message: 'What project template would you like to generate?',
+    message: 'Which project template would you like to generate?',
     choices: CHOICES,
   },
   {
     name: 'project-name',
     type: 'input',
     message: 'Project name:',
-    validate: function (input) {
-      if (/^([A-Za-z\-\\_\d])+$/.test(input)) return true;
-      else return 'Project name may only include letters, numbers, underscores and hashes.';
+    validate(input) {
+      if (/^([A-Za-z\-\_\d])+$/.test(input)) return true;
+      return 'Project name may only include letters, numbers, underscores and hyphens.';
     },
   },
 ];
@@ -32,24 +33,26 @@ const QUESTIONS = [
 inquirer.prompt(QUESTIONS).then(answers => {
   const projectChoice = answers['project-choice'];
   const projectName = answers['project-name'];
-  const templatePath = `${__dirname}/templates/${projectChoice}`;
+  const templatePath = path.join(__dirname, 'templates', projectChoice);
+  const projectPath = path.join(CURR_DIR, projectName);
 
-  const projectPath = `${CURR_DIR}/${projectName}`;
+  // Check if folder already exists
+  if (fs.existsSync(projectPath)) {
+    console.error(`❌ Folder "${projectName}" already exists. Choose a different name.`);
+    process.exit(1);
+  }
 
-  fs.mkdirSync(projectPath);
+  fs.mkdirSync(projectPath, { recursive: true });
 
-  createDirectoryContents(templatePath, projectPath);
+  // Copy template contents
+  createDirectoryContents(templatePath, projectPath, { PROJECT_NAME: projectName });
 
-  // Print instructions
   console.log(`
-Project setup complete!
+✅ Project "${projectName}" created successfully!
 
-To get started with your project, follow these steps:
-1. Change directory into your project folder:
-   cd ${projectName}
-2. Install dependencies:
-   npm install
-3. Start the development server:
-   npm run dev
-  `);
+Next steps:
+1. cd ${projectName}
+2. uv venv
+3. uv sync
+`);
 });
